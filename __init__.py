@@ -1,5 +1,5 @@
 from adapt.intent import IntentBuilder
-from mycroft.skills.core import FallbackSkill
+from mycroft.skills.core import FallbackSkill, intent_handler
 from mycroft.util.log import getLogger
 from mycroft import MycroftSkill, intent_file_handler
 from os.path import dirname, join
@@ -70,19 +70,6 @@ class HomeAssistantSkill(FallbackSkill):
         self.language = self.config_core.get('lang')
         self.load_vocab_files(join(dirname(__file__), 'vocab', self.lang))
         self.load_regex_files(join(dirname(__file__), 'regex', self.lang))
-        self.__build_switch_intent()
-        self.__build_light_adjust_intent()
-        self.__build_automation_intent()
-        self.__build_sensor_intent()
-        self.__build_tracker_intent()
-        self.register_intent_file(
-            'set.climate.intent',
-            self.handle_set_thermostat_intent
-        )
-        self.register_intent_file(
-            'set.light.brightness.intent',
-            self.handle_light_set_intent
-        )
         # Needs higher priority than general fallback skills
         self.register_fallback(self.handle_fallback, 2)
         # Check and then monitor for credential changes
@@ -95,34 +82,10 @@ class HomeAssistantSkill(FallbackSkill):
         self._force_setup()
 
     def __build_switch_intent(self):
-        intent = IntentBuilder("switchIntent").require(
-            "SwitchActionKeyword").require("Action").require("Entity").build()
         self.register_intent(intent, self.handle_switch_intent)
 
-    def __build_light_adjust_intent(self):
-        intent = IntentBuilder("LightAdjBrightnessIntent") \
-            .optionally("LightsKeyword") \
-            .one_of("IncreaseVerb", "DecreaseVerb", "LightBrightenVerb",
-                    "LightDimVerb") \
-            .require("Entity").optionally("BrightnessValue").build()
-        self.register_intent(intent, self.handle_light_adjust_intent)
-
     def __build_automation_intent(self):
-        intent = IntentBuilder("AutomationIntent").require(
-            "AutomationActionKeyword").require("Entity").build()
         self.register_intent(intent, self.handle_automation_intent)
-
-    def __build_sensor_intent(self):
-        intent = IntentBuilder("SensorIntent").require(
-            "SensorStatusKeyword").require("Entity").build()
-        # TODO - Sensors - Locks, Temperature, etc
-        self.register_intent(intent, self.handle_sensor_intent)
-
-    def __build_tracker_intent(self):
-        intent = IntentBuilder("TrackerIntent").require(
-            "DeviceTrackerKeyword").require("Entity").build()
-        # TODO - Identity location, proximity
-        self.register_intent(intent, self.handle_tracker_intent)
 
     # Try to find an entity on the HAServer
     # Creates dialogs for errors and speaks them
@@ -167,6 +130,8 @@ class HomeAssistantSkill(FallbackSkill):
                     'url': exception.request.url})
         return False
 
+    @intent_handler(IntentBuilder("switchIntent").require(
+        "SwitchActionKeyword").require("Action").require("Entity").build())
     def handle_switch_intent(self, message):
         LOGGER.debug("Starting Switch Intent")
         entity = message.data["Entity"]
@@ -252,6 +217,11 @@ class HomeAssistantSkill(FallbackSkill):
 
         return
 
+    @intent_handler(IntentBuilder("LightAdjBrightnessIntent") \
+        .optionally("LightsKeyword") \
+        .one_of("IncreaseVerb", "DecreaseVerb", "LightBrightenVerb",
+                "LightDimVerb") \
+        .require("Entity").optionally("BrightnessValue").build())
     def handle_light_adjust_intent(self, message):
         entity = message.data["Entity"]
         try:
@@ -329,6 +299,8 @@ class HomeAssistantSkill(FallbackSkill):
             self.speak_dialog('homeassistant.error.sorry')
             return
 
+    @intent_handler(IntentBuilder("AutomationIntent").require(
+        "AutomationActionKeyword").require("Entity").build())
     def handle_automation_intent(self, message):
         entity = message.data["Entity"]
         LOGGER.debug("Entity: %s" % entity)
@@ -361,6 +333,8 @@ class HomeAssistantSkill(FallbackSkill):
             self.ha.execute_service("homeassistant", "turn_on",
                                     data=ha_data)
 
+    @intent_handler(IntentBuilder("SensorIntent").require(
+        "SensorStatusKeyword").require("Entity").build())
     def handle_sensor_intent(self, message):
         entity = message.data["Entity"]
         LOGGER.debug("Entity: %s" % entity)
@@ -414,6 +388,8 @@ class HomeAssistantSkill(FallbackSkill):
     # Proximity might be an issue
     # - overlapping command for directions modules
     # - (e.g. "How far is x from y?")
+    @intent_handler(IntentBuilder("TrackerIntent").require(
+        "DeviceTrackerKeyword").require("Entity").build())
     def handle_tracker_intent(self, message):
         entity = message.data["Entity"]
         LOGGER.debug("Entity: %s" % entity)
