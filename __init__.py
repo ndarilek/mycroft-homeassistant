@@ -4,6 +4,7 @@ from mycroft.util.log import getLogger
 from mycroft import MycroftSkill, intent_file_handler
 from os.path import dirname, join
 
+import homeassistant.remote as remote
 from requests.exceptions import (
     RequestException,
     Timeout,
@@ -26,66 +27,18 @@ TIMEOUT = 10
 class HomeAssistantSkill(FallbackSkill):
 
     def __init__(self):
-        MycroftSkill.__init__(self)
-        super(HomeAssistantSkill, self).__init__(name="HomeAssistantSkill")
+        super().__init__()
         self.ha = None
         self.enable_fallback = False
 
-    def _setup(self, force=False):
-        if self.settings is not None and (force or self.ha is None):
-            portnumber = self.settings.get('portnum')
-            try:
-                portnumber = int(portnumber)
-            except TypeError:
-                portnumber = 8123
-            except ValueError:
-                # String might be some rubbish (like '')
-                portnumber = 0
-            self.ha = HomeAssistantClient(
-                self.settings.get('host'),
-                self.settings.get('password'),
-                portnumber,
-                self.settings.get('ssl') == 'true',
-                self.settings.get('verify') == 'true'
-            )
-            if self.ha:
-                # Check if conversation component is loaded at HA-server
-                # and activate fallback accordingly (ha-server/api/components)
-                # TODO: enable other tools like dialogflow
-                try:
-                    conversation_activated = self.ha.find_component(
-                        'conversation'
-                    )
-                except (ConnectionError, RequestException):
-                    conversation_activated = False
-                if conversation_activated:
-                    self.enable_fallback = \
-                        self.settings.get('enable_fallback') == 'true'
-
-    def _force_setup(self):
-        LOGGER.debug('Creating a new HomeAssistant-Client')
-        self._setup(True)
+    @property
+    def client(self):
+        return remote.API(self.settings.get("url"), self.settings.get("password"))
 
     def initialize(self):
-        self.language = self.config_core.get('lang')
-        self.load_vocab_files(join(dirname(__file__), 'vocab', self.lang))
-        self.load_regex_files(join(dirname(__file__), 'regex', self.lang))
+        super().initialize()
         # Needs higher priority than general fallback skills
         self.register_fallback(self.handle_fallback, 2)
-        # Check and then monitor for credential changes
-        self.settings.set_changed_callback(self.on_websettings_changed)
-        self._setup()
-
-    def on_websettings_changed(self):
-        # Force a setting refresh after the websettings changed
-        # Otherwise new settings will not be regarded
-        self._force_setup()
-
-    def __build_switch_intent(self):
-        self.register_intent(intent, self.handle_switch_intent)
-
-    def __build_automation_intent(self):
-        self.register_intent(intent, self.handle_automation_intent)
 
     # Try to find an entity on the HAServer
     # Creates dialogs for errors and speaks them
@@ -409,7 +362,7 @@ class HomeAssistantSkill(FallbackSkill):
                                 'location': dev_location})
 
     @intent_file_handler('set.climate.intent')
-    def handle_set_thermostat_intent(self, message):
+    def handle_set_climate_intent(self, message):
         entity = message.data["entity"]
         LOGGER.debug("Entity: %s" % entity)
         LOGGER.debug("This is the message data: %s" % message.data)
