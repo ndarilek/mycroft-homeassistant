@@ -32,7 +32,11 @@ class HomeAssistantSkill(FallbackSkill):
 
     @property
     def client(self):
-        return remote.API(self.settings.get("url"), self.settings.get("password"))
+        url = self.settings.get("url")
+        if url is not None:
+            if not url.endswith("/"):
+                url += "/"
+            return remote.API(url, self.settings.get("password"))
 
     def initialize(self):
         super().initialize()
