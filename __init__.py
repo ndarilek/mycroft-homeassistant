@@ -34,7 +34,7 @@ class HomeAssistantSkill(FallbackSkill):
     def client(self):
         url = self.settings.get("url")
         password = self.settings.get("password")
-        if url is not None:
+        if url is not None and url != '':
             return HomeAssistantClient(url, password=password)
         else:
             token = os.environ.get('HASSIO_TOKEN')
