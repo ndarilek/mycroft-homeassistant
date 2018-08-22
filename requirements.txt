@@ -1,5 +1,4 @@
 fuzzywuzzy==0.14.0
-homeassistant
 python-Levenshtein==0.12.0
 requests
 responses

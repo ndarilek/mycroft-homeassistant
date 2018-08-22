@@ -3,7 +3,6 @@ from fuzzywuzzy import fuzz, process
 from mycroft.skills.core import FallbackSkill, intent_file_handler, intent_handler
 from mycroft.util.log import getLogger
 
-import homeassistant.remote as remote
 from requests.exceptions import (
     RequestException,
     Timeout,
@@ -33,10 +32,9 @@ class HomeAssistantSkill(FallbackSkill):
     @property
     def client(self):
         url = self.settings.get("url")
+        password = self.settings.get("password")
         if url is not None:
-            if not url.endswith("/"):
-                url += "/"
-            return remote.API(url, self.settings.get("password"))
+            return HomeAssistantClient(url, password=password)
 
     def initialize(self):
         super().initialize()
@@ -365,29 +363,28 @@ class HomeAssistantSkill(FallbackSkill):
                           data={'dev_name': dev_name,
                                 'location': dev_location})
 
-    @intent_file_handler('set.thermostat.intent')
-    def handle_set_thermostat_intent(self, message):
-        entity = message.data.get("entity")
+    @intent_file_handler('set.temperature.intent')
+    def handle_set_temperature_intent(self, message):
+        name = message.data.get("name")
         temperature = message.data["temperature"]
-        entities = [e for e in remote.get_states(self.client) if e.domain == "climate"]
+        entities = self.client.find_entities(domain='climate', name=name)
         if entities == []:
-            return self.speak_dialog("no.thermostat")
-        target = None
-        if entity is not None:
-            entities_by_name = {entity: entity.object_name + " " + entity.friendly_name}
-            target = process.extractOne(entity, entities, scorer=fuzz.partial_token_sort_ratio)
-            if target is None:
-                return self.speak_dialog("no.thermostat.by.name", data={name: message.data["entity"]})
-        data = {"temperature": temperature}
-        if target is not None:
-            data["entity_id"] = target.entity_id
-        remote.call_service(self.client, "climate", "set_temperature", data)
-        data = {"temperature": temperature}
-        if target is None:
-            self.speak_dialog("set.thermostat", data)
+            if name is not None:
+                return self.speak_dialog("no.thermostat.by.name", data={name: name})
+            else:
+                return self.speak_dialog("no.thermostat")
         else:
-            data["name"] = target.name
-            self.speak_dialog("set.thermostat.by.name", data)
+            target = entities[0]
+            data = {'temperature': temperature}
+            if name is None:
+                self.client.execute_service('climate', 'set_temperature', data)
+                self.speak_dialog("set.temperature", data)
+            else:
+                target = entities[0]
+                data['entity_id'] = target['entity_id']
+                self.client.execute_service('climate', 'set_temperature', data)
+                data["name"] = target['attributes'].get('friendly_name', thermostat['entity_id'])
+                self.speak_dialog("set.temperature.by.name", data)
 
     def handle_fallback(self, message):
         if not self.enable_fallback:

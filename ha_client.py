@@ -1,5 +1,7 @@
+from urllib.parse import urlparse
+
 from requests import get, post
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz, process
 import json
 
 __author__ = 'btotharye'
@@ -10,15 +12,10 @@ TIMEOUT = 10
 
 class HomeAssistantClient(object):
 
-    def __init__(self, host, password, portnum, ssl=False, verify=True):
-        self.ssl = ssl
+    def __init__(self, url, password=None, verify=True):
+        self.url = url
+        self.ssl = urlparse(self.url).scheme == 'https'
         self.verify = verify
-        if self.ssl:
-            self.url = "https://{}".format(host)
-        else:
-            self.url = "http://{}".format(host)
-        if portnum:
-            self.url = "{}:{}".format(self.url, portnum)
         self.headers = {
             'x-ha-access': password,
             'Content-Type': 'application/json'
@@ -39,6 +36,16 @@ class HomeAssistantClient(object):
                       timeout=TIMEOUT)
         req.raise_for_status()
         return req.json()
+
+    def find_entities(self, name=None, domain=None):
+        entities = self._get_state()
+        if domain is not None:
+            entities = [e for e in entities if e['entity_id'].startswith(domain)]
+        if name is not None:
+            entities_by_name = {e['attributes'].get('friendly_name', e['entity_id']): e['entity_id']  for e in entities}
+            entity_id = process.extractOne(name, entities_by_name, scorer=fuzz.partial_token_sort_ratio)
+            entities = [e for e in entities if e['entity_id'] == entity_id[0]]
+        return entities
 
     def find_entity(self, entity, types):
         """Find entity with specified name, fuzzy matching
