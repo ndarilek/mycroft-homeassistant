@@ -7,7 +7,7 @@
         "name": "Login",
         "fields": [
           {
-            "name": "URL",
+            "name": "url",
             "type": "text",
             "label": "URL of Home Assistant (without /api)",
             "value": ""
