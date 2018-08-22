@@ -2,6 +2,7 @@ from adapt.intent import IntentBuilder
 from fuzzywuzzy import fuzz, process
 from mycroft.skills.core import FallbackSkill, intent_file_handler, intent_handler
 from mycroft.util.log import getLogger
+import os
 
 from requests.exceptions import (
     RequestException,
@@ -35,6 +36,10 @@ class HomeAssistantSkill(FallbackSkill):
         password = self.settings.get("password")
         if url is not None:
             return HomeAssistantClient(url, password=password)
+        else:
+            token = os.environ.get('HASSIO_TOKEN')
+            if token is not None:
+                return HomeAssistantClient('http://hassio/homeassistant', password=token)
 
     def initialize(self):
         super().initialize()
