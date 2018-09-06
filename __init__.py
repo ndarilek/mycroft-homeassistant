@@ -90,62 +90,6 @@ class HomeAssistantSkill(FallbackSkill):
                     'url': exception.request.url})
         return False
 
-    @intent_handler(IntentBuilder("switchIntent").require(
-        "SwitchActionKeyword").require("Action").require("Entity").build())
-    def handle_switch_intent(self, message):
-        LOGGER.debug("Starting Switch Intent")
-        entity = message.data["Entity"]
-        action = message.data["Action"]
-        LOGGER.debug("Entity: %s" % entity)
-        LOGGER.debug("Action: %s" % action)
-
-        ha_entity = self._find_entity(
-            entity,
-            [
-                'group',
-                'light',
-                'fan',
-                'switch',
-                'scene',
-                'input_boolean',
-                'climate'
-            ]
-        )
-        if not ha_entity:
-            return
-        LOGGER.debug("Entity State: %s" % ha_entity['state'])
-        ha_data = {'entity_id': ha_entity['id']}
-
-        # IDEA: set context for 'turn it off' again or similar
-        # self.set_context('Entity', ha_entity['dev_name'])
-
-        if self.language == 'de':
-            if action == 'ein':
-                action = 'on'
-            elif action == 'aus':
-                action = 'off'
-        if ha_entity['state'] == action:
-            LOGGER.debug("Entity in requested state")
-            self.speak_dialog('homeassistant.device.already', data={
-                "dev_name": ha_entity['dev_name'], 'action': action})
-        elif action == "toggle":
-            self.ha.execute_service("homeassistant", "toggle",
-                                    ha_data)
-            if(ha_entity['state'] == 'off'):
-                action = 'on'
-            else:
-                action = 'off'
-            self.speak_dialog('homeassistant.device.%s' % action,
-                              data=ha_entity)
-        elif action in ["on", "off"]:
-            self.speak_dialog('homeassistant.device.%s' % action,
-                              data=ha_entity)
-            self.ha.execute_service("homeassistant", "turn_%s" % action,
-                                    ha_data)
-        else:
-            self.speak_dialog('homeassistant.error.sorry')
-            return
-
     @intent_file_handler('set.light.brightness.intent')
     def handle_light_set_intent(self, message):
         entity = message.data["entity"]
@@ -367,6 +311,30 @@ class HomeAssistantSkill(FallbackSkill):
         self.speak_dialog('homeassistant.tracker.found',
                           data={'dev_name': dev_name,
                                 'location': dev_location})
+
+    @intent_file_handler('switch.turn_on.intent')
+    def handle_switch_turn_on(self, message):
+        name = message.data.get("name")
+        entities = self.client.find_entities(domain='switch', name=name)
+        if entities == []:
+            return self.speak_dialog("no.switch.by.name", data={name: name})
+        target = entities[0]
+        data = {'entity_id': target['entity_id']}
+        self.client.execute_service('switch', 'turn_on', data)
+        data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
+        self.speak_dialog("switch.turn_on", data)
+
+    @intent_file_handler('switch.turn_off.intent')
+    def handle_switch_turn_off(self, message):
+        name = message.data.get("name")
+        entities = self.client.find_entities(domain='switch', name=name)
+        if entities == []:
+            return self.speak_dialog("no.switch.by.name", data={name: name})
+        target = entities[0]
+        data = {'entity_id': target['entity_id']}
+        self.client.execute_service('switch', 'turn_off', data)
+        data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
+        self.speak_dialog("switch.turn_off", data)
 
     @intent_file_handler('climate.set_temperature.intent')
     def handle_climate_set_temperature(self, message):
