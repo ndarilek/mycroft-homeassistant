@@ -368,8 +368,8 @@ class HomeAssistantSkill(FallbackSkill):
                           data={'dev_name': dev_name,
                                 'location': dev_location})
 
-    @intent_file_handler('set.temperature.intent')
-    def handle_set_temperature_intent(self, message):
+    @intent_file_handler('climate.set_temperature.intent')
+    def handle_climate_set_temperature(self, message):
         name = message.data.get("name")
         temperature = message.data["temperature"]
         entities = self.client.find_entities(domain='climate', name=name)
@@ -383,13 +383,13 @@ class HomeAssistantSkill(FallbackSkill):
             data = {'temperature': temperature}
             if name is None:
                 self.client.execute_service('climate', 'set_temperature', data)
-                self.speak_dialog("set.temperature", data)
+                self.speak_dialog("climate.set_temperature", data)
             else:
                 target = entities[0]
                 data['entity_id'] = target['entity_id']
                 self.client.execute_service('climate', 'set_temperature', data)
                 data["name"] = target['attributes'].get('friendly_name', thermostat['entity_id'])
-                self.speak_dialog("set.temperature.by.name", data)
+                self.speak_dialog("climate.set_temperature.by.name", data)
 
     def handle_fallback(self, message):
         if not self.enable_fallback:
