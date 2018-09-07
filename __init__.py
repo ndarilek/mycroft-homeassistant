@@ -346,18 +346,17 @@ class HomeAssistantSkill(FallbackSkill):
                 return self.speak_dialog("no.thermostat.by.name", data={name: name})
             else:
                 return self.speak_dialog("no.thermostat")
+        target = entities[0]
+        data = {'temperature': temperature}
+        if name is None:
+            self.client.execute_service('climate', 'set_temperature', data)
+            self.speak_dialog("climate.set_temperature", data)
         else:
             target = entities[0]
-            data = {'temperature': temperature}
-            if name is None:
-                self.client.execute_service('climate', 'set_temperature', data)
-                self.speak_dialog("climate.set_temperature", data)
-            else:
-                target = entities[0]
-                data['entity_id'] = target['entity_id']
-                self.client.execute_service('climate', 'set_temperature', data)
-                data["name"] = target['attributes'].get('friendly_name', thermostat['entity_id'])
-                self.speak_dialog("climate.set_temperature.by.name", data)
+            data['entity_id'] = target['entity_id']
+            self.client.execute_service('climate', 'set_temperature', data)
+            data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
+            self.speak_dialog("climate.set_temperature.by.name", data)
 
     def handle_fallback(self, message):
         if not self.enable_fallback:
