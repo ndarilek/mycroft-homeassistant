@@ -312,29 +312,29 @@ class HomeAssistantSkill(FallbackSkill):
                           data={'dev_name': dev_name,
                                 'location': dev_location})
 
-    @intent_file_handler('switch.turn_on.intent')
-    def handle_switch_turn_on(self, message):
+    @intent_file_handler('turn_on.intent')
+    def handle_turn_on(self, message):
         name = message.data.get("name")
         entities = self.client.find_entities(domain='switch', name=name)
         if entities == []:
-            return self.speak_dialog("no.switch.by.name", data={name: name})
+            return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
         data = {'entity_id': target['entity_id']}
         self.client.execute_service('switch', 'turn_on', data)
         data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
-        self.speak_dialog("switch.turn_on", data)
+        self.speak_dialog("turn_on", data)
 
-    @intent_file_handler('switch.turn_off.intent')
-    def handle_switch_turn_off(self, message):
+    @intent_file_handler('turn_off.intent')
+    def handle_turn_off(self, message):
         name = message.data.get("name")
         entities = self.client.find_entities(domain='switch', name=name)
         if entities == []:
-            return self.speak_dialog("no.switch.by.name", data={name: name})
+            return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
         data = {'entity_id': target['entity_id']}
         self.client.execute_service('switch', 'turn_off', data)
         data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
-        self.speak_dialog("switch.turn_off", data)
+        self.speak_dialog("turn_off", data)
 
     @intent_file_handler('climate.set_temperature.intent')
     def handle_climate_set_temperature(self, message):
@@ -343,7 +343,7 @@ class HomeAssistantSkill(FallbackSkill):
         entities = self.client.find_entities(domain='climate', name=name)
         if entities == []:
             if name is not None:
-                return self.speak_dialog("no.thermostat.by.name", data={name: name})
+                return self.speak_dialog("no.entity.by.name", data={name: name})
             else:
                 return self.speak_dialog("no.thermostat")
         target = entities[0]
