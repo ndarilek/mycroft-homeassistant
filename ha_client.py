@@ -45,7 +45,7 @@ class HomeAssistantClient(object):
             elif isinstance(domain, list):
                 entities = [e for e in entities if e['entity_id'].split('.')[0] in domain]
         if name is not None:
-            entities_by_name = {e['attributes'].get('friendly_name', e['entity_id']): e['entity_id']  for e in entities}
+            entities_by_name = {e['attributes'].get('friendly_name'): e['entity_id']  for e in entities if e['attributes'].get('friendly_name') is not None}
             entity_id = process.extractOne(name, entities_by_name, scorer=fuzz.partial_token_sort_ratio)
             entities = [e for e in entities if e['entity_id'] == entity_id[0]]
         return entities
