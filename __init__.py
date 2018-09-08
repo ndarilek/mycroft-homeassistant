@@ -323,7 +323,7 @@ class HomeAssistantSkill(FallbackSkill):
         domain = entity_id.split('.')[0]
         data = {'entity_id': entity_id}
         self.client.execute_service(domain, 'turn_on', data)
-        data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
+        data["name"] = target['attributes'].get('friendly_name', entity_id)
         self.speak_dialog("turn_on", data)
 
     @intent_file_handler('turn_off.intent')
@@ -337,7 +337,7 @@ class HomeAssistantSkill(FallbackSkill):
         domain = entity_id.split('.')[0]
         data = {'entity_id': entity_id}
         self.client.execute_service(domain, 'turn_off', data)
-        data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
+        data["name"] = target['attributes'].get('friendly_name', entity_id)
         self.speak_dialog("turn_off", data)
 
     @intent_file_handler('climate.set_temperature.intent')
