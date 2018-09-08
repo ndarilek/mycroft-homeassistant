@@ -315,24 +315,28 @@ class HomeAssistantSkill(FallbackSkill):
     @intent_file_handler('turn_on.intent')
     def handle_turn_on(self, message):
         name = message.data.get("name")
-        entities = self.client.find_entities(domain='switch', name=name)
+        entities = self.client.find_entities(domain=['input_boolean', 'switch'], name=name)
         if entities == []:
             return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
-        data = {'entity_id': target['entity_id']}
-        self.client.execute_service('switch', 'turn_on', data)
+        entity_id = target['entity_id']
+        domain = entity_id.split('.')[0]
+        data = {'entity_id': entity_id}
+        self.client.execute_service(domain, 'turn_on', data)
         data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
         self.speak_dialog("turn_on", data)
 
     @intent_file_handler('turn_off.intent')
     def handle_turn_off(self, message):
         name = message.data.get("name")
-        entities = self.client.find_entities(domain='switch', name=name)
+        entities = self.client.find_entities(domain=['input_boolean', 'switch'], name=name)
         if entities == []:
             return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
-        data = {'entity_id': target['entity_id']}
-        self.client.execute_service('switch', 'turn_off', data)
+        entity_id = target['entity_id']
+        domain = entity_id.split('.')[0]
+        data = {'entity_id': entity_id}
+        self.client.execute_service(domain, 'turn_off', data)
         data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
         self.speak_dialog("turn_off", data)
 
