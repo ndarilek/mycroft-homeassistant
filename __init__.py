@@ -237,8 +237,6 @@ class HomeAssistantSkill(FallbackSkill):
             self.ha.execute_service("homeassistant", "turn_on",
                                     data=ha_data)
 
-    @intent_handler(IntentBuilder("SensorIntent").require(
-        "SensorStatusKeyword").require("Entity").build())
     def handle_sensor_intent(self, message):
         entity = message.data["Entity"]
         LOGGER.debug("Entity: %s" % entity)
@@ -311,6 +309,38 @@ class HomeAssistantSkill(FallbackSkill):
         self.speak_dialog('homeassistant.tracker.found',
                           data={'dev_name': dev_name,
                                 'location': dev_location})
+
+    @intent_file_handler('query_attribute.intent')
+    def handle_query_attributes(self, message):
+        attribute = message.data.get('attribute')
+        name = message.data.get('name')
+        entities = []
+        if name is not None:
+            entities = self.client.find_entities(name = name)
+        else:
+            entities = self.client.find_entities()
+        if entities == []:
+            return self.speak_dialog("no.entity.by.name", data={name: name})
+        attributes = {}
+        for entity in entities:
+            candidate = process.extractOne(attribute, entity['attributes'].keys(), scorer=fuzz.partial_token_sort_ratio)
+            if candidate[1] < 60:
+                candidate = None
+            if candidate is not None:
+                self.log.info(candidate)
+                c = candidate[0]
+                entity_name = entity['attributes']['friendly_name']
+                attributes[(entity_name, c)] = entity['attributes'][c]
+        if attributes == {}:
+            self.log.info("Got nothin")
+        else:
+            for a in attributes:
+                data = {
+                    'name': a[0],
+                    'attribute': a[1].replace('_', ' '),
+                    'value': attributes[a]
+                }
+                self.speak_dialog('query_attribute', data)
 
     @intent_file_handler('turn_on.intent')
     def handle_turn_on(self, message):
