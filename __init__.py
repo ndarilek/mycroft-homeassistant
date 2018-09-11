@@ -44,6 +44,8 @@ class HomeAssistantSkill(FallbackSkill):
     def initialize(self):
         super().initialize()
         self.register_entity_file("temperature.entity")
+        self.bus.on('mycroft.audio.service.pause', self._pause)
+        self.bus.on('mycroft.audio.service.resume', self._resume)
         # Needs higher priority than general fallback skills
         self.register_fallback(self.handle_fallback, 2)
 
@@ -451,6 +453,13 @@ class HomeAssistantSkill(FallbackSkill):
         data['name'] = name or 'Thermostat'
         self.speak_dialog("climate.set_temperature", data)
 
+    def _pause(self):
+        self.client.execute_service('media_player', 'media_pause')
+
+    def _resume(self):
+        self.client.execute_service('media_player', 'media_play')
+
+
     def handle_fallback(self, message):
         if not self.enable_fallback:
             return False
@@ -478,6 +487,8 @@ class HomeAssistantSkill(FallbackSkill):
         return True
 
     def shutdown(self):
+        self.bus.remove('mycroft.audio.service.pause', self._pause)
+        self.bus.remove('mycroft.audio.service.resume', self._resume)
         self.remove_fallback(self.handle_fallback)
         super(HomeAssistantSkill, self).shutdown()
 
