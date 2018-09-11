@@ -370,18 +370,77 @@ class HomeAssistantSkill(FallbackSkill):
         data["name"] = target['attributes'].get('friendly_name', entity_id)
         self.speak_dialog("turn_off", data)
 
-    @intent_file_handler('climate.set_temperature.intent')
-    def handle_climate_set_temperature(self, message):
+    def _get_thermostats(self, message):
         name = message.data.get("name")
-        temperature = message.data["temperature"]
         entities = self.client.find_entities(domain='climate', name=name)
         if entities == []:
             if name is not None:
-                return self.speak_dialog("no.entity.by.name", data={name: name})
+                self.speak_dialog("no.entity.by.name", data={name: name})
+                return None
             else:
-                return self.speak_dialog("no.thermostat")
-        target = entities[0]
-        data = {'temperature': temperature}
+                self.speak_dialog("no.thermostat")
+                return None
+        else:
+            return entities
+
+    @intent_file_handler('climate.set_operation_mode.cool.intent')
+    def handle_climate_set_operation_mode_cool(self, message):
+        entities = self._get_thermostats(message)
+        if entities is None:
+            return
+        data = {'operation_mode': 'cool'}
+        name = message.data.get("name")
+        if name is None:
+            self.client.execute_service('climate', 'set_operation_mode', data)
+        else:
+            target = entities[0]
+            data['entity_id'] = target['entity_id']
+            self.client.execute_service('climate', 'set_operation_mode', data)
+            name = target['attributes'].get('friendly_name', target['entity_id'])
+        data['name'] = name or 'Thermostat'
+        self.speak_dialog("climate.set_operation_mode_cool", data)
+
+    @intent_file_handler('climate.set_operation_mode.heat.intent')
+    def handle_climate_set_operation_mode_heat(self, message):
+        entities = self._get_thermostats(message)
+        if entities is None:
+            return
+        data = {'operation_mode': 'heat'}
+        name = message.data.get("name")
+        if name is None:
+            self.client.execute_service('climate', 'set_operation_mode', data)
+        else:
+            target = entities[0]
+            data['entity_id'] = target['entity_id']
+            self.client.execute_service('climate', 'set_operation_mode', data)
+            name = target['attributes'].get('friendly_name', target['entity_id'])
+        data['name'] = name or 'Thermostat'
+        self.speak_dialog("climate.set_operation_mode_heat", data)
+
+    @intent_file_handler('climate.set_operation_mode.off.intent')
+    def handle_climate_set_operation_mode_off(self, message):
+        entities = self._get_thermostats(message)
+        if entities is None:
+            return
+        data = {'operation_mode': 'off'}
+        name = message.data.get("name")
+        if name is None:
+            self.client.execute_service('climate', 'set_operation_mode', data)
+        else:
+            target = entities[0]
+            data['entity_id'] = target['entity_id']
+            self.client.execute_service('climate', 'set_operation_mode', data)
+            name = target['attributes'].get('friendly_name', target['entity_id'])
+        data['name'] = name or 'Thermostat'
+        self.speak_dialog("climate.set_operation_mode_off", data)
+
+    @intent_file_handler('climate.set_temperature.intent')
+    def handle_climate_set_temperature(self, message):
+        entities = self._get_thermostats(message)
+        if entities is None:
+            return
+        data = {'temperature': message.data['temperature']}
+        name = message.data.get("name")
         if name is None:
             self.client.execute_service('climate', 'set_temperature', data)
             self.speak_dialog("climate.set_temperature", data)
