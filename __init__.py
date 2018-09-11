@@ -347,7 +347,7 @@ class HomeAssistantSkill(FallbackSkill):
     @intent_file_handler('turn_on.intent')
     def handle_turn_on(self, message):
         name = message.data.get("name")
-        entities = self.client.find_entities(domain=['input_boolean', 'switch'], name=name)
+        entities = self.client.find_entities(domain=['input_boolean', 'light', 'switch'], name=name)
         if entities == []:
             return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
@@ -361,7 +361,7 @@ class HomeAssistantSkill(FallbackSkill):
     @intent_file_handler('turn_off.intent')
     def handle_turn_off(self, message):
         name = message.data.get("name")
-        entities = self.client.find_entities(domain=['input_boolean', 'switch'], name=name)
+        entities = self.client.find_entities(domain=['input_boolean', 'light', 'switch'], name=name)
         if entities == []:
             return self.speak_dialog("no.entity.by.name", data={name: name})
         target = entities[0]
