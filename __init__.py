@@ -443,13 +443,13 @@ class HomeAssistantSkill(FallbackSkill):
         name = message.data.get("name")
         if name is None:
             self.client.execute_service('climate', 'set_temperature', data)
-            self.speak_dialog("climate.set_temperature", data)
         else:
             target = entities[0]
             data['entity_id'] = target['entity_id']
             self.client.execute_service('climate', 'set_temperature', data)
-            data["name"] = target['attributes'].get('friendly_name', target['entity_id'])
-            self.speak_dialog("climate.set_temperature.by.name", data)
+            name = target['attributes'].get('friendly_name', target['entity_id'])
+        data['name'] = name or 'Thermostat'
+        self.speak_dialog("climate.set_temperature", data)
 
     def handle_fallback(self, message):
         if not self.enable_fallback:
