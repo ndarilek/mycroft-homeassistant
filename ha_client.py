@@ -128,20 +128,22 @@ class HomeAssistantClient(object):
                     return entity_attr
         return None
 
-    def execute_service(self, domain, service, data):
+    def execute_service(self, domain, service, data = None):
         """Execute service at HAServer
 
         Throws request Exceptions
         (Subclasses of ConnectionError or RequestException,
           raises HTTPErrors if non-Ok status code)
         """
+        if data is not None:
+            data = json.dumps(data)
         if self.ssl:
             r = post("{}/api/services/{}/{}".format(self.url, domain, service),
-                     headers=self.headers, data=json.dumps(data),
+                     headers=self.headers, data=data,
                      verify=self.verify, timeout=TIMEOUT)
         else:
             r = post("{}/api/services/{}/{}".format(self.url, domain, service),
-                     headers=self.headers, data=json.dumps(data),
+                     headers=self.headers, data=data,
                      timeout=TIMEOUT)
         r.raise_for_status()
         return r
