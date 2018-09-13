@@ -453,10 +453,10 @@ class HomeAssistantSkill(FallbackSkill):
         data['name'] = name or 'Thermostat'
         self.speak_dialog("climate.set_temperature", data)
 
-    def _pause(self):
+    def _pause(self, message = None):
         self.client.execute_service('media_player', 'media_pause')
 
-    def _resume(self):
+    def _resume(self, message = None):
         self.client.execute_service('media_player', 'media_play')
 
 
